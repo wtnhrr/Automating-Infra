@@ -1,0 +1,63 @@
+---
+- hosts: nginx
+  become: yes
+
+  vars_files:
+    - vars/nginx_vars.yml
+
+  tasks:
+    - name: Update apt cache and install Nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+      tags:
+        - install
+
+    - name: Remove default Nginx configuration
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      tags:
+        - config
+
+    - name: Add custom Nginx configuration
+      copy:
+        src: files/static-site-config
+        dest: "{{ nginx_config_dest }}"
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload Nginx
+      tags:
+        - config
+
+    - name: Enable custom Nginx configuration
+      file:
+        src: "{{ nginx_config_dest }}"
+        dest: "{{ nginx_config_link }}"
+        state: link
+      notify: Reload Nginx
+      tags:
+        - config
+
+    - name: Test Nginx configuration
+      command: nginx -t
+      register: nginx_test
+      failed_when: "'successful' not in nginx_test.stdout"
+      tags:
+        - validate
+
+    - name: Ensure Nginx is running
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+      tags:
+        - service
+
+  handlers:
+    - name: Reload Nginx
+      service:
+        name: nginx
+        state: reloaded

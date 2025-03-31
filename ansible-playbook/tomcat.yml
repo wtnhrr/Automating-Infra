@@ -1,0 +1,136 @@
+---
+- hosts: tomcat
+  become: yes
+  
+  vars_files:
+    - vars/tomcat_vars.yml
+
+  tasks:
+    - name: Instalar dependências necessárias
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - default-jdk
+        - maven
+        - wget
+        - curl
+      tags:
+        - install
+
+    - name: Criar grupo do Tomcat
+      group:
+        name: "{{ tomcat_group }}"
+        state: present
+      tags:
+        - config
+
+    - name: Criar usuário do Tomcat
+      user:
+        name: "{{ tomcat_user }}"
+        group: "{{ tomcat_group }}"
+        shell: /bin/false
+        state: present
+      tags:
+        - config
+
+    - name: Baixar e extrair Tomcat
+      block:
+        - name: Fazer download do Tomcat
+          get_url:
+            url: "https://downloads.apache.org/tomcat/tomcat-{{ tomcat_version | regex_replace('\\..*', '') }}/v{{ tomcat_version }}/bin/apache-tomcat-{{ tomcat_version }}.tar.gz"
+            dest: /tmp/apache-tomcat-{{ tomcat_version }}.tar.gz
+        - name: Extrair Tomcat
+          unarchive:
+            src: /tmp/apache-tomcat-{{ tomcat_version }}.tar.gz
+            dest: "{{ tomcat_install_dir }}"
+            remote_src: yes
+      tags:
+        - install
+
+    - name: Ajustar permissões do Tomcat
+      file:
+        path: "{{ tomcat_install_dir }}"
+        state: directory
+        owner: "{{ tomcat_user }}"
+        group: "{{ tomcat_group }}"
+        recurse: yes
+      tags:
+        - config
+
+    - name: Criar diretório para o código-fonte da aplicação
+      file:
+        path: "{{ app_src_dir }}"
+        state: directory
+        owner: "{{ tomcat_user }}"
+        group: "{{ tomcat_group }}"
+        mode: '0755'
+      tags:
+        - deploy
+
+    - name: Sincronizar código-fonte da aplicação (se necessário, ajuste este passo)
+      synchronize:
+        src: "./myapp/"
+        dest: "{{ app_src_dir }}"
+      delegate_to: localhost
+      tags:
+        - deploy
+
+    - name: Construir aplicação com Maven
+      command: mvn clean package
+      args:
+        chdir: "{{ app_src_dir }}"
+      register: maven_result
+      ignore_errors: no
+      tags:
+        - deploy
+
+    - name: Verificar se o .war foi gerado
+      stat:
+        path: "{{ app_src_dir }}/target/{{ app_war_name }}"
+      register: war_file
+      tags:
+        - deploy
+
+    - name: Falhar se o WAR não foi gerado
+      fail:
+        msg: "O arquivo {{ app_war_name }} não foi encontrado em {{ app_src_dir }}/target/"
+      when: not war_file.stat.exists
+      tags:
+        - deploy
+
+    - name: Copiar WAR para o Tomcat
+      copy:
+        src: "{{ app_src_dir }}/target/{{ app_war_name }}"
+        dest: "{{ tomcat_install_dir }}/apache-tomcat-{{ tomcat_version }}/webapps/{{ app_war_name }}"
+        owner: "{{ tomcat_user }}"
+        group: "{{ tomcat_group }}"
+      notify: Restart Tomcat
+      tags:
+        - deploy
+
+    - name: Criar serviço systemd para o Tomcat
+      copy:
+        src: files/tomcat.service
+        dest: /etc/systemd/system/{{ tomcat_service_name }}.service
+      tags:
+        - config
+
+    - name: Recarregar systemd
+      command: systemctl daemon-reload
+      tags:
+        - service
+
+    - name: Iniciar e ativar o serviço do Tomcat
+      service:
+        name: "{{ tomcat_service_name }}"
+        state: started
+        enabled: yes
+      tags:
+        - service
+
+  handlers:
+    - name: Restart Tomcat
+      service:
+        name: "{{ tomcat_service_name }}"
+        state: restarted

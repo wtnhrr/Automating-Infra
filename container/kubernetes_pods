@@ -1,0 +1,114 @@
+provider "kubernetes" {
+  config_path = "~/.kube/config"
+}
+
+resource "kubernetes_namespace" "default" {
+  metadata {
+    name = "default"
+  }
+}
+
+resource "kubernetes_deployment" "nginx" {
+  metadata {
+    name      = "nginx-deployment"
+    namespace = kubernetes_namespace.default.metadata[0].name
+  }
+  spec {
+    replicas = 1
+    selector {
+      match_labels = {
+        app = "nginx"
+      }
+    }
+    template {
+      metadata {
+        labels = {
+          app = "nginx"
+        }
+      }
+      spec {
+        container {
+          name  = "nginx"
+          image = "nginx:latest"
+          port {
+            container_port = 80
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_deployment" "postgresql" {
+  metadata {
+    name      = "postgresql-deployment"
+    namespace = kubernetes_namespace.default.metadata[0].name
+  }
+  spec {
+    replicas = 1
+    selector {
+      match_labels = {
+        app = "postgresql"
+      }
+    }
+    template {
+      metadata {
+        labels = {
+          app = "postgresql"
+        }
+      }
+      spec {
+        container {
+          name  = "postgresql"
+          image = "postgres:14"
+          env {
+            name  = "POSTGRES_USER"
+            value = "my_user"
+          }
+          env {
+            name  = "POSTGRES_PASSWORD"
+            value = "my_password"
+          }
+          env {
+            name  = "POSTGRES_DB"
+            value = "my_database"
+          }
+          port {
+            container_port = 5432
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_deployment" "tomcat" {
+  metadata {
+    name      = "tomcat-deployment"
+    namespace = kubernetes_namespace.default.metadata[0].name
+  }
+  spec {
+    replicas = 1
+    selector {
+      match_labels = {
+        app = "tomcat"
+      }
+    }
+    template {
+      metadata {
+        labels = {
+          app = "tomcat"
+        }
+      }
+      spec {
+        container {
+          name  = "tomcat"
+          image = "tomcat:9.0"
+          port {
+            container_port = 8080
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,5 @@
+---
+postgresql_version: 14
+postgresql_db: my_database
+postgresql_user: my_user
+postgresql_password: my_password

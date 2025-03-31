@@ -1,0 +1,4 @@
+---
+nginx_config_src: static-site-config
+nginx_config_dest: /etc/nginx/sites-available/static-site-config
+nginx_config_link: /etc/nginx/sites-enabled/static-site-config

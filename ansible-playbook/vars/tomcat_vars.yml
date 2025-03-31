@@ -1,0 +1,13 @@
+---
+tomcat_version: 9.0.73
+tomcat_install_dir: /opt/tomcat
+tomcat_user: tomcat
+tomcat_group: tomcat
+tomcat_service_name: tomcat
+postgresql_host: postgresql-container
+postgresql_port: 5432
+postgresql_db: my_database
+postgresql_user: my_user
+postgresql_password: my_password
+app_src_dir: /tmp/myapp
+app_war_name: myapp.war
