@@ -41,20 +41,22 @@
       tags:
         - config
 
-    - name: Test Nginx configuration
-      command: nginx -t
-      register: nginx_test
-      failed_when: "'successful' not in nginx_test.stdout"
+    - name: Create Hello World HTML file
+      copy:
+        src: files/index.html
+        dest: /var/www/html/index.html
+        owner: www-data
+        group: www-data
+        mode: '0644'
       tags:
-        - validate
+        - hello-world
 
-    - name: Ensure Nginx is running
+    - name: restart Nginx
       service:
         name: nginx
-        state: started
-        enabled: yes
+        state: restarted
       tags:
-        - service
+        - restart
 
   handlers:
     - name: Reload Nginx

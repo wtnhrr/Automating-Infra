@@ -4,14 +4,14 @@ After=network.target
 
 [Service]
 Type=forking
-User={{ tomcat_user }}
-Group={{ tomcat_group }}
+User=tomcat
+Group=tomcat
 Environment=JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
-Environment=CATALINA_PID={{ tomcat_install_dir }}/apache-tomcat-{{ tomcat_version }}/temp/tomcat.pid
-Environment=CATALINA_HOME={{ tomcat_install_dir }}/apache-tomcat-{{ tomcat_version }}
-Environment=CATALINA_BASE={{ tomcat_install_dir }}/apache-tomcat-{{ tomcat_version }}
-ExecStart={{ tomcat_install_dir }}/apache-tomcat-{{ tomcat_version }}/bin/startup.sh
-ExecStop={{ tomcat_install_dir }}/apache-tomcat-{{ tomcat_version }}/bin/shutdown.sh
+Environment=CATALINA_PID=/usr/local/tomcat/apache-tomcat-{{ tomcat_version }}/temp/tomcat.pid
+Environment=CATALINA_HOME=/usr/local/tomcat/apache-tomcat-{{ tomcat_version }}
+Environment=CATALINA_BASE=/usr/local/tomcat/apache-tomcat-{{ tomcat_version }}
+ExecStart=/usr/local/tomcat/apache-tomcat-{{ tomcat_version }}/bin/startup.sh
+ExecStop=/usr/local/tomcat/apache-tomcat-{{ tomcat_version }}/bin/shutdown.sh
 Restart=on-failure
 
 [Install]

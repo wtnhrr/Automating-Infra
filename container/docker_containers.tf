@@ -20,12 +20,13 @@ resource "docker_network" "shared_network" {
 
 # Nginx
 resource "docker_image" "nginx" {
-  name = "nginx:latest"
+  name = "nginx:alpine-slim"
 }
 
 resource "docker_container" "nginx" {
   name  = "nginx-container"
   image = docker_image.nginx.name
+  depends_on = [docker_container.tomcat]
   networks_advanced {
     name = docker_network.shared_network.name
   }
@@ -39,7 +40,7 @@ resource "docker_container" "nginx" {
 
 # PostgreSQL
 resource "docker_image" "postgresql" {
-  name = "postgres:14"
+  name = "postgres:17-alpine"
 }
 
 resource "docker_container" "postgresql" {
@@ -63,7 +64,7 @@ resource "docker_container" "postgresql" {
 
 # Tomcat
 resource "docker_image" "tomcat" {
-  name = "tomcat:9.0"
+  name = "tomcat:latest"
 }
 
 resource "docker_container" "tomcat" {
@@ -76,6 +77,7 @@ resource "docker_container" "tomcat" {
     internal = 8080
     external = 8081
   }
+  depends_on = [docker_network.shared_network]
 }
 
 # ----------------------------------------------------------- #
