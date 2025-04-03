@@ -78,6 +78,13 @@ resource "docker_container" "tomcat" {
     external = 8081
   }
   depends_on = [docker_network.shared_network]
+  env = [
+    "DB_USER",
+    "DB_PASSWORD",
+    "DB_HOST",
+    "DB_PORT",
+    "DB_NAME"
+  ]
 }
 
 # ----------------------------------------------------------- #

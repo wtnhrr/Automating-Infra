@@ -6,60 +6,23 @@
     - vars/nginx_vars.yml
 
   tasks:
-    - name: Update apt cache and install Nginx
-      apt:
-        name: nginx
-        state: present
-        update_cache: yes
-      tags:
-        - install
-
     - name: Remove default Nginx configuration
       file:
-        path: /etc/nginx/sites-enabled/default
+        path: /etc/nginx/conf.d/default.conf
         state: absent
       tags:
         - config
 
-    - name: Add custom Nginx configuration
-      copy:
-        src: files/static-site-config
-        dest: "{{ nginx_config_dest }}"
-        owner: root
-        group: root
-        mode: '0644'
-      notify: Reload Nginx
+    - name: Add custom Nginx configuration to container
+      command: docker cp files/static-site.conf nginx-container:/etc/nginx/conf.d/static-site.conf
       tags:
         - config
 
-    - name: Enable custom Nginx configuration
-      file:
-        src: "{{ nginx_config_dest }}"
-        dest: "{{ nginx_config_link }}"
-        state: link
-      notify: Reload Nginx
-      tags:
-        - config
-
-    - name: Create Hello World HTML file
-      copy:
-        src: files/index.html
-        dest: /var/www/html/index.html
-        owner: www-data
-        group: www-data
-        mode: '0644'
+    - name: Add Hello World HTML file to container
+      command: docker cp files/index.html nginx-container:/usr/share/nginx/html/index.html
       tags:
         - hello-world
 
-    - name: restart Nginx
-      service:
-        name: nginx
-        state: restarted
-      tags:
-        - restart
-
   handlers:
     - name: Reload Nginx
-      service:
-        name: nginx
-        state: reloaded
+      command: nginx -s reload

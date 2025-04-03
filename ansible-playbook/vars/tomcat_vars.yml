@@ -11,3 +11,4 @@ postgresql_user: my_user
 postgresql_password: my_password
 app_src_dir: /tmp/myapp
 app_war_name: myapp.war
+

@@ -6,10 +6,14 @@
     - vars/tomcat_vars.yml
 
   tasks:
-    - name: Update the System Packages
-      apt:
-        upgrade: yes
-        update_cache: yes
+    - name: Set environment variables for Tomcat
+      command: >
+        docker update --env-add DB_USER={{ postgresql_user }}
+                      --env-add DB_PASSWORD={{ postgresql_password }}
+                      --env-add DB_HOST={{ postgresql_host }}
+                      --env-add DB_PORT={{ postgresql_port }}
+                      --env-add DB_NAME={{ postgresql_db }}
+                      tomcat-container
 
     - name: Create a Tomcat Group
       group: name=tomcat
@@ -31,21 +35,27 @@
       file: path={{ tomcat_install_dir }} owner={{ tomcat_user }} group={{ tomcat_group }} state=directory recurse=yes
 
     - name: configure tomcat user
-      copy:
-        src: files/tomcat-users.xml
-        dest: "{{ tomcat_install_dir }}/conf/tomcat-users.xml"
-        owner: "{{ tomcat_user }}"
-        group: "{{ tomcat_group }}"
+      command: docker cp files/tomcat-users.xml tomcat-container:/usr/local/tomcat/conf/tomcat-users.xml
       notify:
         - Restart Tomcat
 
-    - name: start tomcat in container
-      command: /usr/share/tomcat/bin/startup.sh
-      args:
-        chdir: "/usr/share/tomcat/bin"
+    - name: Copy Tomcat Manager to the correct path
+      command: docker exec tomcat-container bash -c "cp -r /usr/local/tomcat/webapps.dist/* /usr/local/tomcat/webapps/"
+      notify:
+      - Restart Tomcat
+
+    - name: copy context.xml
+      command: docker cp files/context.xml tomcat-container:/usr/local/tomcat/webapps/manager/META-INF/context.xml
+      notify:
+        - Restart Tomcat
+
+    - name: Copy .war file to Tomcat
+      command: docker cp apps/myapp.war tomcat-container:/usr/local/tomcat/webapps/myapp.war
+      notify:
+        - Restart Tomcat
 
   handlers:
     - name: Restart Tomcat
-      service:
-        name: "{{ tomcat_service_name }}"
-        state: restarted
+      command: docker exec tomcat-container /usr/local/tomcat/bin/shutdown.sh && docker exec tomcat-container /usr/local/tomcat/bin/startup.sh
+      tags:
+        - restart
